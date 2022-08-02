@@ -48,7 +48,7 @@ def get_dns(parsed, extracted_table):
                     temp_list.append({records: answer.rrset.to_text()})
             except BaseException:
                 pass
-        if len(temp_list) > 0:
+        if temp_list:
             extracted_table.insert({'dns_records': temp_list})
     except Exception as e:
         print(e)
@@ -82,21 +82,26 @@ def make_network(analyzer_table, network_graph):
         for item in analyzer_table.all():
             try:
                 if 'headers' in item:
-                    if 'Host' in item['headers']:
-                        if item['headers']['Host'] not in list_domain_counters:
-                            list_domain_counters.append(item['headers']['Host'])
-                            dict_domain_counters.update({domain_counter: item['headers']['Host']})
-                            domain_counter += 1
-                    if ':authority' in item['headers']:
-                        if item['headers'][':authority'] not in list_domain_counters:
-                            list_domain_counters.append(item['headers'][':authority'])
-                            dict_domain_counters.update({domain_counter: item['headers'][':authority']})
-                            domain_counter += 1
+                    if (
+                        'Host' in item['headers']
+                        and item['headers']['Host'] not in list_domain_counters
+                    ):
+                        list_domain_counters.append(item['headers']['Host'])
+                        dict_domain_counters[domain_counter] = item['headers']['Host']
+                        domain_counter += 1
+                    if (
+                        ':authority' in item['headers']
+                        and item['headers'][':authority']
+                        not in list_domain_counters
+                    ):
+                        list_domain_counters.append(item['headers'][':authority'])
+                        dict_domain_counters[domain_counter] = item['headers'][':authority']
+                        domain_counter += 1
             except BaseException:
                 pass
 
         G = Graph()
-        if len(list_domain_counters) > 0:
+        if list_domain_counters:
             for key, value in dict_domain_counters.items():
                 G.add_node(key, text=value)
                 if key != 0:
@@ -134,10 +139,9 @@ def get_headers(parsed, extracted_table):
             proxies = {'http': parsed['proxy'],
                        'https': parsed['proxy']}
             response = rhead(parsed['buffer'], proxies=proxies, headers=headers, timeout=2)
-            response.headers['response_status'] = response.status_code
         else:
             response = rhead(parsed['buffer'], headers=headers, timeout=2)
-            response.headers['response_status'] = response.status_code
+        response.headers['response_status'] = response.status_code
         if len(response.headers) > 0:
             extracted_table.insert({'Request_Headers': dict(response.request.headers)})
             extracted_table.insert({'Response_Headers': dict(response.headers)})
@@ -204,13 +208,13 @@ def get_all_links(html, extracted_table):
         parsed_table = []
         for a_tag in BeautifulSoup(html, 'html.parser').findAll("a"):
             try:
-                temp_link = "{} > {}".format(a_tag['href'], a_tag.text)
+                temp_link = f"{a_tag['href']} > {a_tag.text}"
                 if temp_link not in temp_table:
                     temp_table.append(temp_link)
                     parsed_table.append({"link": a_tag['href'], "text": a_tag.text})
             except BaseException:
                 pass
-        if len(parsed_table) > 0:
+        if parsed_table:
             extracted_table.insert({"extracted_links": parsed_table})
             print("[SandBox] extracted links")
     except BaseException:
@@ -222,14 +226,14 @@ def get_all_scripts(html, extracted_table):
         temp_table = []
         parsed_table = []
         for script in BeautifulSoup(html, 'html.parser').findAll("script"):
-            temp_link = "{}".format(script)
+            temp_link = f"{script}"
             if temp_link not in temp_table:
                 temp_table.append(temp_link)
                 try:
                     parsed_table.append({"script": str(script)})
                 except BaseException:
                     pass
-        if len(parsed_table) > 0:
+        if parsed_table:
             extracted_table.insert({"extracted_scripts": parsed_table})
             print("[SandBox] extracted scripts")
     except BaseException:
@@ -285,8 +289,7 @@ def parse_ouput(logs, table):
         #temp_list = [e for e in network_events if find_key("headers",e) is not None]
         temp_list = []
         for _ in network_events:
-            rec = find_key("headers", _)
-            if rec:
+            if rec := find_key("headers", _):
                 if "Network.responseReceived" in _["method"]:
                     table.insert({"type": "Recvied", "headers": rec})
                 elif "Network.requestWillBeSent" in _["method"]:
@@ -311,26 +314,22 @@ def chrome_driver(parsed, analyzer_db):
     chrome_options = ChromeOptions()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--user-agent={}'.format(parsed['useragent_mapped']))
+    chrome_options.add_argument(f"--user-agent={parsed['useragent_mapped']}")
     if parsed['use_proxy']:
-        chrome_options.add_argument('--proxy-server=%s' % parsed['proxy'])
+        chrome_options.add_argument(f"--proxy-server={parsed['proxy']}")
     chrome_options.binary_location = "/usr/bin/google-chrome"
     d = DesiredCapabilities.CHROME
     d["goog:loggingPrefs"] = {"performance": "ALL"}
     chromebrowser = webdriver.Chrome(chrome_options=chrome_options, desired_capabilities=d)
     if parsed["no_redirect"]:
         chromebrowser.implicitly_wait(0.1)
-        try:
-            chromebrowser.get(parsed["buffer"])
-        except BaseException:
-            pass
-        # WebDriverWait(chromebrowser,1).until(EC.visibility_of_element_located((By.TAG_NAME,'body'))).send_keys(Keys.ESCAPE)
+            # WebDriverWait(chromebrowser,1).until(EC.visibility_of_element_located((By.TAG_NAME,'body'))).send_keys(Keys.ESCAPE)
     else:
         chromebrowser.implicitly_wait(int(parsed["url_timeout"]))
-        try:
-            chromebrowser.get(parsed["buffer"])
-        except BaseException:
-            pass
+    try:
+        chromebrowser.get(parsed["buffer"])
+    except BaseException:
+        pass
     performance_logs = chromebrowser.get_log('performance')
     get_cert(parsed, extracted_table)
     get_all_links(chromebrowser.page_source, extracted_table)

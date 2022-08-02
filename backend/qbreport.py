@@ -25,9 +25,7 @@ class ComplexEncoder(JSONEncoder):
         '''
         override default
         '''
-        if not isinstance(obj, str):
-            return str(obj)
-        return JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, obj) if isinstance(obj, str) else str(obj)
 
 
 def pretty_json(value):
@@ -60,8 +58,9 @@ def make_json_table(env, data, header) -> str:
     </table>
     </div>"""
 
-    result = env.from_string(temp).render(header=header, parsed_header=parsed_header, data=data)
-    return result
+    return env.from_string(temp).render(
+        header=header, parsed_header=parsed_header, data=data
+    )
 
 
 def make_json_table_no_loop(env, data, header) -> str:
@@ -85,8 +84,9 @@ def make_json_table_no_loop(env, data, header) -> str:
     </table>
     </div>"""
 
-    result = env.from_string(temp).render(header=header, parsed_header=parsed_header, data=data)
-    return result
+    return env.from_string(temp).render(
+        header=header, parsed_header=parsed_header, data=data
+    )
 
 
 def make_text_table(env, data, header) -> str:
@@ -112,8 +112,9 @@ def make_text_table(env, data, header) -> str:
     </table>
     </div>"""
 
-    result = env.from_string(temp).render(header=header, parsed_header=parsed_header, data=data)
-    return result
+    return env.from_string(temp).render(
+        header=header, parsed_header=parsed_header, data=data
+    )
 
 
 def make_image_table_base64(env, data, header) -> str:
@@ -136,8 +137,9 @@ def make_image_table_base64(env, data, header) -> str:
         </tbody>
     </table>
     </div>"""
-    result = env.from_string(temp).render(header=header, parsed_header=parsed_header, data=data)
-    return result
+    return env.from_string(temp).render(
+        header=header, parsed_header=parsed_header, data=data
+    )
 
 
 ENV_JINJA2 = Environment(autoescape=True, loader=FileSystemLoader('/tmp'), trim_blocks=True, lstrip_blocks=True)
@@ -154,8 +156,10 @@ def make_report(parsed):
     analyzer_db = None
     sniffer_db = None
 
-    analyzer_path = "{}{}{}".format(parsed['locations']['box_output'], parsed['task'], parsed['locations']['analyzer_logs'])
-    sniffer_path = "{}{}{}".format(parsed['locations']['box_output'], parsed['task'], parsed['locations']['sniffer_logs'])
+    analyzer_path = f"{parsed['locations']['box_output']}{parsed['task']}{parsed['locations']['analyzer_logs']}"
+
+    sniffer_path = f"{parsed['locations']['box_output']}{parsed['task']}{parsed['locations']['sniffer_logs']}"
+
 
     analyzer_db = TinyDB(analyzer_path)
     sniffer_db = TinyDB(sniffer_path)

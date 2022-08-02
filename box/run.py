@@ -3,6 +3,7 @@
     box -> run
 '''
 
+
 from sys import argv
 from binascii import hexlify
 from pickle import dumps as pdumps
@@ -18,7 +19,10 @@ from time import sleep
 if len(argv) == 2:
     print("[SandBox] Parsing arguments")
     parsed = loads(unhexlify(argv[1]))
-    analyzer_logs = TinyDB("{}{}{}".format(parsed['locations']['box_output'], parsed['task'], parsed['locations']['analyzer_logs']))
+    analyzer_logs = TinyDB(
+        f"{parsed['locations']['box_output']}{parsed['task']}{parsed['locations']['analyzer_logs']}"
+    )
+
     if not parsed['use_proxy']:
         print("[SandBox] Using tor")
         c = Connection()
@@ -28,12 +32,15 @@ if len(argv) == 2:
         print("[SandBox] Using proxy")
         prxoy_dns = gethostbyname("proxy")
         if parsed['proxy'] == 'socks5://proxy:9050':
-            parsed['proxy'] = 'socks5://{}:9050'.format(prxoy_dns)
+            parsed['proxy'] = f'socks5://{prxoy_dns}:9050'
         with open("/etc/resolv.conf", 'w') as file:
-            file.write("nameserver {}\n".format(prxoy_dns))
+            file.write(f"nameserver {prxoy_dns}\n")
     if parsed['sniffer_on']:
         print("[SandBox] Running Sniffer")
-        sniffer_logs = TinyDB("{}{}{}".format(parsed['locations']['box_output'], parsed['task'], parsed['locations']['sniffer_logs']))
+        sniffer_logs = TinyDB(
+            f"{parsed['locations']['box_output']}{parsed['task']}{parsed['locations']['sniffer_logs']}"
+        )
+
         x = QSniffer(parsed, '', 'eth0', sniffer_logs)
         x.run_sniffer(process=True)
     print("[SandBox] Testing with chrome webdriver")

@@ -3,6 +3,7 @@
     shared -> logger
 '''
 
+
 from os import path, environ
 from sys import stdout
 from datetime import datetime
@@ -28,10 +29,10 @@ class TerminalColors:
     White = "\033[37m"
 
 
-GREEN_X = '{}{}{}'.format(TerminalColors.Green, "X", TerminalColors.Restore)
-YELLOW_ARROW = '{}{}{}'.format(TerminalColors.Yellow, ">", TerminalColors.Restore)
-EXCLAMATION_MARK = '{}{}{}'.format(TerminalColors.Yellow, "!", TerminalColors.Restore)
-RED_ARROW = '{}{}{}'.format(TerminalColors.Red, ">", TerminalColors.Restore)
+GREEN_X = f'{TerminalColors.Green}X{TerminalColors.Restore}'
+YELLOW_ARROW = f'{TerminalColors.Yellow}>{TerminalColors.Restore}'
+EXCLAMATION_MARK = f'{TerminalColors.Yellow}!{TerminalColors.Restore}'
+RED_ARROW = f'{TerminalColors.Red}>{TerminalColors.Restore}'
 
 
 @contextmanager
@@ -55,7 +56,7 @@ def setup_task_logger(parsed):
     '''
     setup the dynamic logger for the task
     '''
-    log_string("Setup task {} logger".format(parsed['task']), "Yellow")
+    log_string(f"Setup task {parsed['task']} logger", "Yellow")
     temp_dict = parsed.copy()
     temp_dict.update({"start": datetime.utcnow(), "end": None, "logs": []})
     add_item(defaultdb["dbname"], defaultdb["taskdblogscoll"], temp_dict)
@@ -65,7 +66,7 @@ def cancel_task_logger(task):
     '''
     setup the dynamic logger for the task
     '''
-    log_string("Closing task {} logger".format(task), "Yellow")
+    log_string(f"Closing task {task} logger", "Yellow")
     update_task_by_uuid(defaultdb["dbname"], defaultdb["taskdblogscoll"], task, {"end": datetime.utcnow()})
 
 
@@ -79,6 +80,12 @@ def log_string(_str, color=None, task=None):
     if task is None:
         add_item(defaultdb["dbname"], defaultdb["alllogscoll"], {'time': ctime, 'message': _str})
     else:
-        update_task(defaultdb["dbname"], defaultdb["taskdblogscoll"], task, "{} > {}".format(ctime, _str))
-    print("{} {}".format(_str, task))
+        update_task(
+            defaultdb["dbname"],
+            defaultdb["taskdblogscoll"],
+            task,
+            f"{ctime} > {_str}",
+        )
+
+    print(f"{_str} {task}")
     stdout.flush()

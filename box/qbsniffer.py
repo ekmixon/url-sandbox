@@ -27,9 +27,7 @@ class ComplexEncoder(JSONEncoder):
         '''
         override default
         '''
-        if not isinstance(obj, str):
-            return str(obj)
-        return JSONEncoder.default(self, obj)
+        return JSONEncoder.default(self, obj) if isinstance(obj, str) else str(obj)
 
 
 class QSniffer():
@@ -52,10 +50,9 @@ class QSniffer():
         # self.logs.addHandler(fh)
 
     def find_ICMP(self, x1, x2):
-        for _ in self.ICMP_codes:
-            if x1 == _[0] and x2 == _[1]:
-                return _[2]
-        return "None"
+        return next(
+            (_[2] for _ in self.ICMP_codes if x1 == _[0] and x2 == _[1]), "None"
+        )
 
     def get_layers(self, packet):
         try:
@@ -77,19 +74,22 @@ class QSniffer():
                 if _q_s.method == "ALL":
                     # only incoming packets - hmmmm
                     received = False
-                    if packet.haslayer(Ether) and packet[Ether].dst == get_if_hwaddr(conf.iface).lower():
-                        if packet[Ether].src != get_if_hwaddr(conf.iface).lower():
-                            for layer in _layers:
-                                try:
-                                    _fields[layer] = packet[layer].fields
-                                    if "load" in _fields[layer]:
-                                        raw_payloads[layer] = _fields[layer]["load"]
-                                        hex_payloads[layer] = hexlify(_fields[layer]["load"])
-                                        received = True
-                                except Exception as e:
-                                    pass
-                            dumped = jdumps({'type': 'received', 'time': datetime.now().isoformat(), 'ip': _q_s.current_ip, 'mac': _q_s.current_mac, 'layers': _layers, 'fields': _fields, "payload": hex_payloads}, cls=ComplexEncoder)
-                            _q_s.logs.insert(jloads(dumped))
+                    if (
+                        packet.haslayer(Ether)
+                        and packet[Ether].dst == get_if_hwaddr(conf.iface).lower()
+                        and packet[Ether].src != get_if_hwaddr(conf.iface).lower()
+                    ):
+                        for layer in _layers:
+                            try:
+                                _fields[layer] = packet[layer].fields
+                                if "load" in _fields[layer]:
+                                    raw_payloads[layer] = _fields[layer]["load"]
+                                    hex_payloads[layer] = hexlify(_fields[layer]["load"])
+                                    received = True
+                            except Exception as e:
+                                pass
+                        dumped = jdumps({'type': 'received', 'time': datetime.now().isoformat(), 'ip': _q_s.current_ip, 'mac': _q_s.current_mac, 'layers': _layers, 'fields': _fields, "payload": hex_payloads}, cls=ComplexEncoder)
+                        _q_s.logs.insert(jloads(dumped))
                     if not received and packet.haslayer(Ether) and packet[Ether].src == get_if_hwaddr(conf.iface).lower():
                         for layer in _layers:
                             try:

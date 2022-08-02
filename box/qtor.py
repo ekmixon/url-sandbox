@@ -64,24 +64,22 @@ iptables -A OUTPUT -j REJECT'''
         out, err = process.communicate()
         ret = False
         print("[>] Waiting on Tor..")
-        for x in range(0, 10):
+        for _ in range(10):
             with open('/var/log/tor_s.logs') as file:
                 if 'Bootstrapped 100%: Done' in file.read():
                     ret = True
                     break
                 else:
                     sleep(2)
-        if not ret:
-            return "Error"
-        return "Done"
+        return "Done" if ret else "Error"
 
     def run(self):
-        print("[>] Setup tor.. 1-6 {}".format(self.kill_tor()))
-        print("[>] Setup tor.. 2-6 {}".format(self.delete_tor_file()))
-        print("[>] Setup tor.. 3-6 {}".format(self.setuptor_new()))
-        print("[>] Setup tor.. 4-6 {}".format(self.setup_resolve()))
-        print("[>] Setup tor.. 5-6 {}".format(self.start_tor()))
-        print("[>] Setup tor.. 6-6 {}".format(self.setup_iptables()))
+        print(f"[>] Setup tor.. 1-6 {self.kill_tor()}")
+        print(f"[>] Setup tor.. 2-6 {self.delete_tor_file()}")
+        print(f"[>] Setup tor.. 3-6 {self.setuptor_new()}")
+        print(f"[>] Setup tor.. 4-6 {self.setup_resolve()}")
+        print(f"[>] Setup tor.. 5-6 {self.start_tor()}")
+        print(f"[>] Setup tor.. 6-6 {self.setup_iptables()}")
 
 #c = Connection("xuser","genmon-7","127.0.0.1","9051","pass")
 # c.run()
